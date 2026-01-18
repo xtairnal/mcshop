@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MC Shop</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        :root {
+            --bg-color: #050505;
+            --text-color: #ffffff;
+            --accent-green: #00c878; 
+            --accent-violet: #9d00ff;
+            --accent-red: #ff3b30;
+            --card-gradient: linear-gradient(145deg, rgba(15, 15, 15, 0.9) 0%, rgba(46, 0, 79, 0.6) 100%);
+        }
+
+        body {
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 0 16px;
+            background-color: var(--bg-color);
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .smoke-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            background: radial-gradient(circle at bottom, #110022 0%, #050505 100%);
+        }
+
+        #shop-page { 
+            height: 100vh; 
+            overflow-y: auto; 
+            padding-top: 60px;
+            padding-bottom: 100px;
+            box-sizing: border-box;
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 50px;
+            padding-top: 20px;
+        }
+
+        .shop-title {
+            font-weight: 900;
+            font-size: 3.2rem;
+            letter-spacing: 5px;
+            color: #fff;
+            text-transform: uppercase;
+            position: relative;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .shop-title::before, .shop-title::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            pointer-events: none;
+        }
+
+        .shop-title::before {
+            left: 2px;
+            text-shadow: -2px 0 #00ffff;
+            clip-path: inset(24% 0 29% 0);
+            animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
+        }
+
+        .shop-title::after {
+            left: -2px;
+            text-shadow: -2px 0 #ff00ff;
+            clip-path: inset(54% 0 21% 0);
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+        }
+
+        @keyframes glitch-anim-1 { 0% { clip-path: inset(80% 0 6% 0); } 100% { clip-path: inset(5% 0 83% 0); } }
+        @keyframes glitch-anim-2 { 0% { clip-path: inset(18% 0 40% 0); } 100% { clip-path: inset(2% 0 63% 0); } }
+
+        .product-list { display: flex; flex-direction: column; gap: 14px; max-width: 500px; margin: 0 auto; }
+        
+        .product-card {
+            background: var(--card-gradient);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            border: 1px solid rgba(157, 0, 255, 0.15);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .new-badge {
+            position: absolute; top: 12px; right: 12px;
+            background: var(--accent-red); color: #fff;
+            font-size: 10px; font-weight: 900; padding: 4px 10px;
+            border-radius: 6px; text-transform: uppercase;
+            box-shadow: 0 0 12px rgba(255, 59, 48, 0.7); z-index: 2;
+        }
+
+        .info h3 { margin: 0; font-size: 18px; font-weight: 600; padding-right: 50px; }
+        .dog-tag { font-size: 14px; color: #777; margin: 5px 0; }
+
+        .go-btn {
+            background: linear-gradient(45deg, #00c878, #00ffc3);
+            color: white; border: none; padding: 12px; border-radius: 14px;
+            font-weight: 700; width: 100%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+        }
+
+        #modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 100;
+            justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s;
+        }
+        #modal {
+            background: #121212; width: 85%; max-width: 320px;
+            border-radius: 25px; padding: 24px; border: 1px solid rgba(157, 0, 255, 0.3);
+            text-align: center; transform: scale(0.8); transition: 0.3s;
+        }
+        #modal-overlay.active { display: flex; opacity: 1; }
+        #modal-overlay.active #modal { transform: scale(1); }
+        .modal-dog { font-size: 15px; font-weight: 500; margin: 15px 0; color: #bbb; }
+        .confirm-btn {
+            background: var(--accent-green); color: white; border: none;
+            padding: 16px; border-radius: 16px; width: 100%; font-weight: 800; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="smoke-bg"></div>
+
+    <div id="shop-page">
+        <div class="header-container">
+            <h1 class="shop-title" data-text="MC Shop">MC Shop</h1>
+        </div>
+        <div class="product-list" id="list"></div>
+    </div>
+
+    <div id="modal-overlay">
+        <div id="modal">
+            <h2 id="modal-title" style="margin:0;">Подтверждение</h2>
+            <p id="modal-desc" style="font-size: 16px; color: #FF00FF; margin: 10px 0; font-weight: bold;"></p>
+            <div class="modal-dog">Вы уверены, что хотите перейти на сайт для скачивания?</div>
+            <button class="confirm-btn" id="confirm-action">ПОДТВЕРДИТЬ</button>
+            <button onclick="closeModal()" style="background: transparent; color: #555; border: none; margin-top: 15px; cursor: pointer;">Отмена</button>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Массив товаров с индивидуальными ссылками
+        const products = [
+            { 
+                id: 1, 
+                title: "CompKiller for CS2 Crack (fixed dll)", 
+                isNew: true, 
+                link: "https://files.fm/u/5uzbmhde2b"
+            },
+            { 
+                id: 2, 
+                title: "AyuGram PC Version", 
+                isNew: false, 
+                link: "https://files.fm/u/cke7ajhmbc"
+            },
+            { 
+                id: 3, 
+                title: "Exloader", 
+                isNew: false, 
+                link: "https://files.fm/u/334gkndf3e"
+            }
+        ];
+
+        let currentActiveLink = "";
+
+        function render() {
+            const container = document.getElementById('list');
+            container.innerHTML = products.map(p => `
+                <div class="product-card">
+                    ${p.isNew ? '<div class="new-badge">NEW</div>' : ''}
+                    <div class="info">
+                        <h3>${p.title}</h3>
+                        <div class="dog-tag">Доступно для загрузки</div>
+                    </div>
+                    <button class="go-btn" onclick="openModal(${p.id})">Перейти →</button>
+                </div>
+            `).join('');
+        }
+
+        function openModal(id) {
+            const p = products.find(i => i.id === id);
+            currentActiveLink = p.link; // Запоминаем ссылку именно этого товара
+            
+            document.getElementById('modal-title').innerText = p.title;
+            document.getElementById('modal-desc').innerText = "MC Shop";
+            
+            const overlay = document.getElementById('modal-overlay');
+            overlay.style.display = 'flex';
+            setTimeout(() => overlay.classList.add('active'), 10);
+            tg.HapticFeedback.impactOccurred('medium');
+
+            // Привязываем функцию перехода к кнопке именно с этой ссылкой
+            document.getElementById('confirm-action').onclick = goToLink;
+        }
+
+        function closeModal() {
+            const overlay = document.getElementById('modal-overlay');
+            overlay.classList.remove('active');
+            setTimeout(() => overlay.style.display = 'none', 300);
+        }
+
+        function goToLink() {
+            tg.HapticFeedback.notificationOccurred('success');
+            tg.openLink(currentActiveLink);
+            closeModal();
+        }
+
+        render();
+    </script>
+</body>
+</html>
